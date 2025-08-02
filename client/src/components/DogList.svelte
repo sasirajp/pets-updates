@@ -6,15 +6,36 @@
         name: string;
         breed: string;
     }
+    interface Breed {
+        id: number;
+        name: string;
+    }
 
     export let dogs: Dog[] = [];
+    let breeds: Breed[] = [];
+    let selectedBreed: number | null = null;
+    let onlyAvailable = false;
     let loading = true;
     let error: string | null = null;
 
+    const fetchBreeds = async () => {
+        try {
+            const response = await fetch('/api/breeds');
+            if (response.ok) {
+                breeds = await response.json();
+            }
+        } catch {
+            // ignore breed fetch errors for now
+        }
+    };
+
     const fetchDogs = async () => {
         loading = true;
+        let url = '/api/dogs?';
+        if (selectedBreed) url += `breed=${selectedBreed}&`;
+        if (onlyAvailable) url += `available=1&`;
         try {
-            const response = await fetch('/api/dogs');
+            const response = await fetch(url);
             if(response.ok) {
                 dogs = await response.json();
             } else {
@@ -28,11 +49,39 @@
     };
 
     onMount(() => {
+        fetchBreeds();
         fetchDogs();
     });
+
+    $: selectedBreed, onlyAvailable, fetchDogs();
 </script>
 
 <div>
+    <div class="flex flex-col md:flex-row gap-4 mb-6 items-center">
+        <div>
+            <label for="breed" class="text-slate-300 mr-2">Breed:</label>
+            <select
+                id="breed"
+                bind:value={selectedBreed}
+                class="bg-slate-800 text-slate-100 rounded px-3 py-2 border border-slate-700 focus:border-blue-500 focus:outline-none"
+            >
+                <option value={null}>All</option>
+                {#each breeds as breed}
+                    <option value={breed.id}>{breed.name}</option>
+                {/each}
+            </select>
+        </div>
+        <div>
+            <label class="inline-flex items-center cursor-pointer">
+                <input
+                    type="checkbox"
+                    bind:checked={onlyAvailable}
+                    class="form-checkbox accent-blue-500 mr-2"
+                />
+                <span class="text-slate-300">Only show available dogs</span>
+            </label>
+        </div>
+    </div>
     <h2 class="text-2xl font-medium mb-6 text-slate-100">Available Dogs</h2>
     
     {#if loading}
